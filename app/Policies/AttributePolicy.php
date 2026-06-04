@@ -1,0 +1,44 @@
+<?php
+
+namespace App\Policies;
+
+use App\Models\Attribute;
+use App\Models\User;
+
+class AttributePolicy
+{
+    public function viewAny(User $user): bool
+    {
+        return $user->can('ViewAny:Attribute');
+    }
+
+    public function view(User $user, Attribute $attribute): bool
+    {
+        return true;
+    }
+
+    public function create(User $user): bool
+    {
+        return false;
+    }
+
+    public function update(User $user, Attribute $attribute): bool
+    {
+        return false;
+    }
+
+    public function delete(User $user, Attribute $attribute): bool
+    {
+        return false;
+    }
+
+    public function restore(User $user, Attribute $attribute): bool
+    {
+        return false;
+    }
+
+    public function forceDelete(User $user, Attribute $attribute): bool
+    {
+        return false;
+    }
+}
