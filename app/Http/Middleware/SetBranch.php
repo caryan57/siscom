@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Branch;
 use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
@@ -19,17 +20,39 @@ class SetBranch
     {
         $authUser = Auth::user();
 
-        if($authUser instanceof User) {
-            if(!session()->has('branch_id')) {
+        if (!$authUser instanceof User) {
+            return $next($request);
+        }
 
-                $branch = $authUser->branches()
+        $companyId = current_company_id();
+
+        if (blank($companyId)) {
+            session()->forget('branch_id');
+
+            return $next($request);
+        }
+
+        $branchQuery = $authUser->isOwner()
+            ? Branch::query()->where('company_id', $companyId)
+            : $authUser->branches()
                 ->withoutGlobalScope('company')
-                ->where('branches.company_id', current_company_id())
-                ->first();
+                ->wherePivot('company_id', $companyId)
+                ->where('branches.company_id', $companyId);
 
-                if($branch) {
-                    session(['branch_id' => $branch->id]);
-                }
+        $branchId = session('branch_id');
+
+        $hasAccess = filled($branchId)
+            && (clone $branchQuery)->whereKey($branchId)->exists();
+
+        if (!$hasAccess) {
+            $branchId = (clone $branchQuery)
+                ->orderByDesc('is_default')
+                ->value('branches.id');
+
+            if (filled($branchId)) {
+                session(['branch_id' => $branchId]);
+            } else {
+                session()->forget('branch_id');
             }
         }
 
