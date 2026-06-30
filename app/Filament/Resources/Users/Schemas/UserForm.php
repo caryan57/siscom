@@ -13,6 +13,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Text;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
@@ -52,7 +53,12 @@ class UserForm
                             ->label('Rol')
                             ->required()
                             ->live()
-                            ->relationship('roles', 'name')
+                            ->relationship(
+                                name: 'roles',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: fn (Builder $query): Builder =>
+                                $query->where('company_id', current_company_id()),
+                            )
                             ->getOptionLabelFromRecordUsing(
                                 fn ($record) => RoleType::tryFrom($record->name)?->getLabel() ?? ucfirst($record->name)
                             )

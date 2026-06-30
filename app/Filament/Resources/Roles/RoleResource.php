@@ -26,6 +26,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Unique;
 use Override;
@@ -40,6 +41,12 @@ class RoleResource extends Resource
     use HasShieldFormComponents;
 
     protected static ?string $recordTitleAttribute = 'name';
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->where('company_id', current_company_id());
+    }
 
     #[Override]
     public static function form(Schema $schema): Schema

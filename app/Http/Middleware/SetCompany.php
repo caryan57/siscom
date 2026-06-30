@@ -16,26 +16,19 @@ class SetCompany
         $authUser = Auth::user();
 
         if ($authUser instanceof User) {
+            $companyId = session('company_id');
+            $hasAccess = filled($companyId) && $authUser->companies()->whereKey($companyId)->exists();
 
-            if (!session()->has('company_id')) {
-
-                $company = $authUser->companies()->first();
-
-                if ($company) {
-                    session(['company_id' => $company->id]);
-                }
+            if (!$hasAccess) {
+                $companyId = $authUser->companies()->value('companies.id');
+                session(['company_id' => $companyId]);
+                session()->forget('branch_id');
             }
 
-            if (session()->has('company_id')) {
-
-                $companyId = session('company_id');
-                setPermissionsTeamId($companyId);
-
-                app(PermissionRegistrar::class)
-                    ->setPermissionsTeamId($companyId);
-            }
+            setPermissionsTeamId($companyId);
+            app(PermissionRegistrar::class)
+                ->setPermissionsTeamId($companyId);
         }
-
         return $next($request);
     }
 }
