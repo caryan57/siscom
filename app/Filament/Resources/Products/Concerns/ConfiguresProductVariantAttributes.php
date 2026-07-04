@@ -34,7 +34,7 @@ trait ConfiguresProductVariantAttributes
             ->values()
             ->toArray();
 
-        if (empty($values)) {
+        if (blank($values)) {
             return;
         }
 
@@ -146,7 +146,7 @@ trait ConfiguresProductVariantAttributes
             $variantAttributes[$attributeIndex]['values']
         );
         if (
-            empty($variantAttributes[$attributeIndex]['values'])
+            blank($variantAttributes[$attributeIndex]['values'])
         ) {
             unset($variantAttributes[$attributeIndex]);
 
@@ -190,14 +190,18 @@ trait ConfiguresProductVariantAttributes
             return;
         }
 
-        $attributeValues = collect($attributes)
-            ->mapWithKeys(fn($attribute) => [
-                $attribute['attribute_name'] => $attribute['values'],
-            ])
+        $attributeOptions = collect($attributes)
+            ->map(fn ($attribute) => collect($attribute['values'])
+                ->map(fn ($value) => [
+                    'attribute_id' => $attribute['attribute_id'],
+                    'attribute_name' => $attribute['attribute_name'],
+                    'value' => $value,
+                ])
+                ->toArray()
+            )
             ->toArray();
 
-        $combinations = $this->cartesianProduct(array_values($attributeValues));
-        $attributeNames = array_keys($attributeValues);
+        $combinations = $this->cartesianProduct($attributeOptions);
 
         // Usamos una clave estable basada en la combinación
         $existingVariants = collect(
@@ -209,31 +213,32 @@ trait ConfiguresProductVariantAttributes
         foreach ($combinations as $combination) {
 
             $mapped = collect($combination)
-                ->mapWithKeys(fn($value, $index) => [
-                    $attributeNames[$index] => $value,
+                ->map(fn ($item) => [
+                    'attribute_id' => $item['attribute_id'],
+                    'attribute_name' => $item['attribute_name'],
+                    'value' => $item['value'],
                 ])
+                ->values()
                 ->toArray();
 
-            $variantKey = collect($combination)->implode('|');
+            $combinationValues = collect($combination)->pluck('value');
+            $variantKey = collect($combination)
+                ->map(fn ($item) => $item['attribute_id'] . ':' . $item['value'])
+                ->implode('|');
+
             $productName = trim((string) data_get($this->data, 'name'));
+
             $generatedName = blank($productName)
-                ? collect($combination)->implode(' / ')
-                : $productName . ' - ' . collect($combination)->implode(' - ');
+                ? $combinationValues->implode(' / ')
+                : $productName . ' - ' . $combinationValues->implode(' - ');
 
             $generatedSku = str($productName)
                 ->upper()
                 ->replace(' ', '-')
+                ->append(blank($productName) ? '' : '-')
                 ->append(
-                    blank($productName) ? '' : '-'
-                )
-                ->append(
-                    collect($combination)
-                        ->map(
-                            fn($value) => str($value)
-                                ->upper()
-                                ->replace(' ', '-')
-                                ->value()
-                        )
+                    $combinationValues
+                        ->map(fn ($value) => str($value)->upper()->replace(' ', '-')->value())
                         ->implode('-')
                 )
                 ->value();

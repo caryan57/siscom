@@ -33,25 +33,33 @@ class ProductDto
     {
         // Determine if the product is a service based on the unit_id, so we can set appropriate defaults for service products
         $isService = Unit::isService((int) $data['unit_id']);
-        
+
+        $categoryId = $data['category_id'] ?? null;
+        $brandId = $data['brand_id'] ?? null;
+        $taxId = $data['tax_id'] ?? null;
+        $cost = $data['cost'] ?? null;
+        $trackInventory = !$isService && (bool)($data['track_inventory'] ?? true);
+        $trackBatches = $trackInventory && (bool) ($data['track_batches'] ?? false);
+        $trackExpiration = $trackBatches && (bool) ($data['track_expiration'] ?? false);
+
         return new self(
             company_id: current_company_id(),
             name: $data['name'],
             unit_id: (int) $data['unit_id'],
-            category_id: isset($data['category_id']) ? (int) $data['category_id'] : null,
-            brand_id: isset($data['brand_id']) ? (int) $data['brand_id'] : null,
-            tax_id: isset($data['tax_id']) ? (int) $data['tax_id'] : null,
+            category_id: filled($categoryId) ? (int) $categoryId : null,
+            brand_id: filled($brandId) ? (int) $brandId : null,
+            tax_id: filled($taxId) ? (int) $taxId : null,
             variant_name: $data['variant_name'] ?? null,
             sku: $data['sku'] ?? null,
             barcode: $data['barcode'] ?? null,
             description: $data['description'] ?? null,
             image: $data['image'] ?? null,
-            cost: isset($data['cost']) ? (float) $data['cost'] : null,
+            cost: filled($cost) ? (float) $cost : null,
             status: (bool) ($data['status'] ?? true),
-            has_variants: $isService ? false : (bool) ($data['has_variants'] ?? false),
-            track_inventory: $isService ? false : (bool) ($data['track_inventory'] ?? true),
-            track_batches: $isService ? false : (bool) ($data['track_batches'] ?? false),
-            track_expiration: $isService ? false : (bool) ($data['track_expiration'] ?? false),
+            has_variants: !$isService && (bool)($data['has_variants'] ?? false),
+            track_inventory: $trackInventory,
+            track_batches: $trackBatches,
+            track_expiration: $trackExpiration,
             prices: $data['prices'] ?? [],
             generated_variants: $data['generated_variants'] ?? [],
             branch_stocks: $data['branch_stocks'] ?? [],
